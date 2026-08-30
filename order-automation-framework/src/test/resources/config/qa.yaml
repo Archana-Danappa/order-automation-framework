@@ -1,0 +1,21 @@
+# Real, persistent environment - points at actual managed MySQL/MongoDB/Redis.
+# embedded: false means the test run does NOT auto-apply schema.sql here;
+# that is expected to already be applied once, manually, against this
+# environment (see README "Database Setup" - real-environment variant).
+baseUrl: "http://localhost:8089"
+requestTimeoutMs: 8000
+embedded: false
+
+mysql:
+  jdbcUrl: "jdbc:mysql://qa-db-host:3306/order_management_qa"
+  username: "${QA_MYSQL_USERNAME}"
+  password: "${QA_MYSQL_PASSWORD}"
+
+mongo:
+  connectionString: "mongodb://qa-mongo-host:27017"
+  database: "order_events_qa"
+  eventsCollection: "events"
+
+redis:
+  host: "qa-redis-host"
+  port: 6379

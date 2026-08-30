@@ -1,0 +1,42 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="OrderWarehouseAutomationSuite" verbose="1">
+
+    <!--
+        No <listeners> block here on purpose - ExtentReportListener and
+        RetryAnnotationTransformer are declared via @Listeners on
+        baseTests.BaseTest instead, so they fire whether the suite runs
+        through this XML (`mvn test`) or as a single ad-hoc method from an
+        IDE. See BaseTest's class-level javadoc for why.
+    -->
+
+    <test name="E2E-OrderLifecycle">
+        <classes>
+            <class name="e2eTests.OrderLifecycleE2ETest"/>
+        </classes>
+    </test>
+
+    <test name="API-NegativeTests">
+        <classes>
+            <class name="apiTests.OrderNegativeTests"/>
+        </classes>
+    </test>
+
+    <test name="DataDriven-OrderCreation">
+        <classes>
+            <class name="apiTests.OrderCreationDataDrivenTest"/>
+        </classes>
+    </test>
+
+    <test name="Integration-Idempotency">
+        <classes>
+            <class name="integrationTests.OrderIdempotencyTest"/>
+        </classes>
+    </test>
+
+    <test name="Integration-PollingTimeout">
+        <classes>
+            <class name="integrationTests.PollingTimeoutTest"/>
+        </classes>
+    </test>
+
+</suite>
