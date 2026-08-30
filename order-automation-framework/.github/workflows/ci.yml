@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -48,7 +48,12 @@ jobs:
         if: always()
         with:
           name: Surefire Test Report
-          path: target/surefire-reports/*.xml
+          # Only the per-class JUnit-format files, NOT testng-results.xml
+          # (TestNG's own native XML format) - dorny/test-reporter only
+          # understands the JUnit schema, and a broader glob that also
+          # matches testng-results.xml makes it fail with a parse error
+          # even though the tests themselves ran and passed.
+          path: target/surefire-reports/TEST-*.xml
           reporter: java-junit
 
       - name: Archive Extent HTML report
