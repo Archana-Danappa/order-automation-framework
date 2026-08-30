@@ -15,6 +15,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,17 +28,27 @@ jobs:
           cache: 'maven'
 
       - name: Build
-        run: mvn -B -f order-automation-framework/pom.xml clean compile
+        run: mvn -B clean compile
 
       - name: Run tests
-        run: mvn -B -f order-automation-framework/pom.xml -Dgroups=${{ github.event.inputs.groups || 'all' }} test
+        # Deliberately zero external setup: the default `dev` environment
+        # uses an embedded H2 database (MySQL-compatibility mode) and
+        # falls back to an H2-backed event store if no MongoDB is
+        # reachable - see README "Why MySQL is embedded" / "Why MongoDB
+        # falls back to H2". This keeps CI fast and eliminates an entire
+        # class of flakiness (service-container startup races) for a
+        # take-home assessment's scope. To instead exercise real
+        # MySQL/MongoDB in CI, add `services:` blocks for mysql/mongo,
+        # point qa.yaml at 127.0.0.1, and run with `-Denv=qa` plus the
+        # matching QA_MYSQL_USERNAME/PASSWORD secrets.
+        run: mvn -B test
 
       - name: Publish Surefire test results
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Surefire Test Report
-          path: order-automation-framework/target/surefire-reports/*.xml
+          path: target/surefire-reports/*.xml
           reporter: java-junit
 
       - name: Archive Extent HTML report
@@ -45,11 +56,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extent-report
-          path: order-automation-framework/target/extent-reports/
+          path: target/extent-reports/
 
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: automation-logs
-          path: order-automation-framework/target/logs/
+          path: target/logs/
