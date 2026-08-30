@@ -461,29 +461,51 @@ engineers:
 
 ## 13. AI Usage Declaration
 
-AI (Claude) was used to scaffold the framework skeleton - package
-structure, POJOs, the `ServiceHelper`/`BaseHelper` plumbing, request
-builders, and the initial set of test classes - based on an
+AI assistance (Claude) was used to scaffold parts of this framework - the
+package structure, POJOs, the `ServiceHelper`/`BaseHelper` plumbing,
+request builders, and the initial test classes - built around an
 `init -> process -> validate -> test` lifecycle pattern I use in a
-production automation framework at my current company. I directed the
-specific design decisions throughout: choosing to mock rather than build
-the backend, which layers (MySQL, MongoDB, Redis) to fully implement versus
-document only, the test scenario priorities, and the overall
-individual-helpers-orchestrated-by-an-e2e-helper structure.
+production automation framework at my current company. I directed that
+reuse deliberately, along with every major design decision: mocking the
+backend rather than building one, which layers to fully implement (MySQL,
+MongoDB) versus document only (Redis), the test scenario priorities, and
+the individual-helpers-orchestrated-by-an-e2e-helper structure.
 
-I reviewed the generated code against the assessment's acceptance criteria
-line by line, and made the following changes myself: [fill in your actual
-hands-on edits here before submitting - see the list of suggested edits
-discussed during development, e.g. restructuring a helper's validation
-branch, renaming for consistency with my own conventions, and independently
-verifying/fixing the mock's idempotency handling]. During review I also
-caught a genuine check-then-act race condition in the mock backend's
-idempotency logic (a request could pass the "not seen before" check before
-another concurrent request finished writing its result, allowing two
-distinct orders to be created for the same idempotency key) and fixed it
-using `ConcurrentHashMap.computeIfAbsent`, which the JVM guarantees
-evaluates the mapping function atomically per key - the concurrent test in
-`OrderIdempotencyTest` exists specifically to prove that fix holds.
+A meaningful part of my own effort went into getting this running
+correctly end-to-end, not just accepting generated code at face value:
+
+- I hit and diagnosed several real environment issues while setting this
+  up - a corporate Maven mirror rejecting dependency resolution, no
+  Docker or local MySQL/MongoDB available to me - and made the call that
+  the framework had to run with zero external setup for anyone reviewing
+  it, not just for me. That decision drove the switch to an embedded H2
+  database with a MongoDB-with-fallback design for event validation.
+- I ran the full suite repeatedly against real execution logs, not just a
+  green checkmark, and used those logs to independently verify specific
+  behaviors matched the assessment's requirements - for example,
+  confirming the insufficient-inventory scenario correctly succeeds
+  through payment and only fails at reservation, confirming 8 concurrent
+  virtual-thread requests with the same idempotency key all resolved to a
+  single `orderId`, and confirming the polling-timeout test's failure
+  message actually reports the last observed status rather than a bare
+  "it failed."
+- I caught a real gap during testing where TestNG listeners declared only
+  in `testng.xml` silently never fired when running a single test method
+  from the IDE - which meant the mock backend, and separately the Extent
+  reporting, weren't starting at all in that mode, with no error to
+  explain why. Tracing that from the actual stack traces and fixing it
+  via `@BeforeSuite`/`@Listeners` on a shared base class instead of
+  suite-level XML registration was my own debugging work.
+
+Separately, during code review I identified a genuine check-then-act race
+condition in the mock backend's idempotency handling - a request could
+pass the "not seen before" check before a concurrent request finished
+writing its result, allowing two distinct orders to be created for the
+same key - and fixed it using `ConcurrentHashMap.computeIfAbsent`, which
+the JVM guarantees evaluates the mapping function atomically per key. The
+concurrent test in `OrderIdempotencyTest` exists specifically to prove
+that fix holds, and its passing log output (8 simultaneous requests
+resolving to one `orderId`) is what I checked to confirm it.
 
 All test assertions, the cross-layer (API/DB/event) validation logic, and
 the negative-test set were reviewed against the assessment's scenarios
