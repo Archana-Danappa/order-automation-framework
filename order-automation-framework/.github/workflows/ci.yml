@@ -31,30 +31,7 @@ jobs:
         run: mvn -B clean compile
 
       - name: Run tests
-        # Deliberately zero external setup: the default `dev` environment
-        # uses an embedded H2 database (MySQL-compatibility mode) and
-        # falls back to an H2-backed event store if no MongoDB is
-        # reachable - see README "Why MySQL is embedded" / "Why MongoDB
-        # falls back to H2". This keeps CI fast and eliminates an entire
-        # class of flakiness (service-container startup races) for a
-        # take-home assessment's scope. To instead exercise real
-        # MySQL/MongoDB in CI, add `services:` blocks for mysql/mongo,
-        # point qa.yaml at 127.0.0.1, and run with `-Denv=qa` plus the
-        # matching QA_MYSQL_USERNAME/PASSWORD secrets.
         run: mvn -B test
-
-      - name: Publish Surefire test results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Surefire Test Report
-          # Only the per-class JUnit-format files, NOT testng-results.xml
-          # (TestNG's own native XML format) - dorny/test-reporter only
-          # understands the JUnit schema, and a broader glob that also
-          # matches testng-results.xml makes it fail with a parse error
-          # even though the tests themselves ran and passed.
-          path: target/surefire-reports/TEST-*.xml
-          reporter: java-junit
 
       - name: Archive Extent HTML report
         if: always()
@@ -62,6 +39,13 @@ jobs:
         with:
           name: extent-report
           path: target/extent-reports/
+
+      - name: Archive Surefire results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
 
       - name: Archive logs
         if: always()
