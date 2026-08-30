@@ -1,0 +1,66 @@
+name: Order Automation Framework CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: 'TestNG group to run (smoke/regression/all)'
+        required: false
+        default: 'all'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build
+        run: mvn -B clean compile
+
+      - name: Run tests
+        # Deliberately zero external setup: the default `dev` environment
+        # uses an embedded H2 database (MySQL-compatibility mode) and
+        # falls back to an H2-backed event store if no MongoDB is
+        # reachable - see README "Why MySQL is embedded" / "Why MongoDB
+        # falls back to H2". This keeps CI fast and eliminates an entire
+        # class of flakiness (service-container startup races) for a
+        # take-home assessment's scope. To instead exercise real
+        # MySQL/MongoDB in CI, add `services:` blocks for mysql/mongo,
+        # point qa.yaml at 127.0.0.1, and run with `-Denv=qa` plus the
+        # matching QA_MYSQL_USERNAME/PASSWORD secrets.
+        run: mvn -B test
+
+      - name: Publish Surefire test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Surefire Test Report
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+
+      - name: Archive Extent HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extent-report
+          path: target/extent-reports/
+
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-logs
+          path: target/logs/

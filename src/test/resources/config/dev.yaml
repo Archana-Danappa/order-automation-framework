@@ -1,0 +1,23 @@
+# Zero-setup environment: `mvn test` with no external MySQL/MongoDB needed.
+# mysql points at an in-memory, in-process H2 instance running in
+# MySQL-compatibility mode; its schema is applied automatically at suite
+# startup (see SchemaInitializer / BaseTest). MongoDB is attempted first at
+# the configured connectionString; if unreachable, OrderEventHelper falls
+# back to an H2-backed events table automatically - see its class comment.
+baseUrl: "http://localhost:8089"
+requestTimeoutMs: 5000
+embedded: true
+
+mysql:
+  jdbcUrl: "jdbc:h2:mem:order_management_dev;MODE=MySQL;DATABASE_TO_UPPER=FALSE;DB_CLOSE_DELAY=-1"
+  username: "sa"
+  password: ""
+
+mongo:
+  connectionString: "mongodb://localhost:27017"
+  database: "order_events_dev"
+  eventsCollection: "events"
+
+redis:
+  host: "localhost"
+  port: 6379
